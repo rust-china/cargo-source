@@ -1,6 +1,6 @@
 [package]
 name = "cargo-source"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "Cargo sources manager"
 repository = "https://github.com/rust-china/cargo-source"
@@ -11,6 +11,6 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 clap = { version = "4.3.15", features = [ "derive" ] }
 ansi_term = "0.12"
-toml = "0.5"
+toml = "0.7.6"
 toml_edit = "0.19.14"
 dirs = "3.0"
