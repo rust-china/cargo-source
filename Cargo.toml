@@ -1,10 +1,11 @@
 [package]
 name = "cargo-source"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 description = "Cargo sources manager"
 repository = "https://github.com/rust-china/cargo-source"
 authors = ["winter <zwtao90@gmail.com>"]
+keywords = ["subcommand", "cargo"]
 license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
