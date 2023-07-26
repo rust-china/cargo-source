@@ -1,7 +1,7 @@
 # cargo-source
+`cargo-source` can make it easy easy and fast to switch between different crates registries.
 
 ## Install
-
 ```
 $ cargo install cargo-source
 ```

@@ -3,11 +3,12 @@ use toml_edit::{Document, Item, Table, value};
 use ansi_term::Colour::Green;
 use clap::{arg, Command};
 
-pub const REGISTRIES: [(&str, &str, &str); 4] = [
+pub const REGISTRIES: [(&str, &str, &str); 5] = [
     ("ustc", "git://mirrors.ustc.edu.cn/crates.io-index", "中国科学技术大学"),
     ("sjtu", "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/", "上海交通大学"),
     ("tuna", "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git", "清华大学"),
     ("rustcc", "https://code.aliyun.com/rustcc/crates.io-index.git", "rustcc社区"),
+    ("rsproxy", "https://rsproxy.cn/crates.io-index", ""),
 ];
 
 pub fn pad_end(input: &str, total_length: usize, padding_char: char) -> String {
@@ -49,6 +50,13 @@ impl CargoConfig {
     }
 
     pub fn check_registry(&mut self, registry: &str) {
+        if registry == "crates-io" {
+            let doc = &mut self.document;
+            let crates_io = doc["source"]["crates-io"].as_table_mut().unwrap();
+            crates_io.remove("replace-with");
+            self.write_to_file().unwrap();
+            return
+        }
         let in_local_config = self.registries.iter().any(|item| item.0 == registry);
         if in_local_config {
             let doc = &mut self.document;
@@ -72,9 +80,10 @@ impl CargoConfig {
             let doc = &mut self.document;
             doc["source"]["crates-io"]["replace-with"] = value(registry);
             self.write_to_file().unwrap();
-            println!("将crate源切换到: {}", registry);
+            println!("Registry has been replaced with {}", registry);
+            return
         } 
-        println!("注册表中不存在：{}", registry);
+        println!("there is no any registry named {} in recommendation list.", registry);
     }
 
     pub fn write_to_file(&self) -> Result<(), Box<dyn Error>>{
@@ -94,7 +103,7 @@ impl CargoConfig {
         let dir = dirs::home_dir().ok_or("找不到主目录")?;
         let mut dir = dir.to_str().unwrap().to_string();
         dir.push_str("/.cargo/");
-        let mut entries = fs::read_dir(&dir).expect("tttt");
+        let mut entries = fs::read_dir(&dir)?;
         let exist = entries.any(|entry| {
             let file_name = entry.unwrap().file_name();
             if file_name.to_str().unwrap().contains("config") {
@@ -116,8 +125,8 @@ pub struct Cli {
 impl Default for Cli {
     fn default() -> Self {
         let command = Command::new("cargo-source")
-            .version("0.0.3")
-            .about("crate 源切换工具")
+            .version("0.0.31")
+            .about("crates 源切换工具")
             .arg_required_else_help(true)
             .subcommand_required(true)
             .subcommands([
@@ -158,7 +167,7 @@ impl Cli {
     }
     fn ls(&self) -> anyhow::Result<()> {
         let cargo_config = CargoConfig::new().unwrap();
-        println!("推荐源：");
+        println!("Recommended registries：");
         for (tag, url, desc) in REGISTRIES {
             println!(
                 "  {} | {} | {} ",
@@ -167,10 +176,8 @@ impl Cli {
                 desc
             )
         }
-        println!("\n-------------------------------------------\n");
 
-        println!("本地配置源：");
-
+        let default_registry = value("crates-io");
         let replace_with = cargo_config
             .document
             .as_table()
@@ -179,10 +186,12 @@ impl Cli {
             .get("crates-io")
             .ok_or_else(|| anyhow::anyhow!("no crates-io config"))?
             .get("replace-with")
-            .ok_or_else(|| anyhow::anyhow!("no replace-with config"))?
+            .unwrap_or(&default_registry)
             .as_str()
             .unwrap();
-
+        if cargo_config.registries.len() > 0 {
+            println!("\n-------------------------------------------\nLocal config registries：");
+        }
         cargo_config.registries.iter().for_each(|(name, registry)| {
             let tag = if name == replace_with {
                 format!("* {}", name)
@@ -196,7 +205,6 @@ impl Cli {
             )
         });
         println!("\n 说明：*表示当前使用的源，可以通过cargo source use xxxx 来切换源");
-
         Ok(())
     }
 
