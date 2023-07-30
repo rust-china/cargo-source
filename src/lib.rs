@@ -3,14 +3,20 @@ use toml_edit::{Document, Item, Table, value};
 use ansi_term::Colour::Green;
 use clap::{arg, Command};
 
+pub type R<T> = Result<T, Box<dyn Error>>;
+
 pub const REGISTRIES: [(&str, &str, &str); 5] = [
+    ("rsproxy", "https://rsproxy.cn/crates.io-index", "字节"),
     ("ustc", "git://mirrors.ustc.edu.cn/crates.io-index", "中国科学技术大学"),
     ("sjtu", "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/", "上海交通大学"),
     ("tuna", "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git", "清华大学"),
     ("rustcc", "https://code.aliyun.com/rustcc/crates.io-index.git", "rustcc社区"),
-    ("rsproxy", "https://rsproxy.cn/crates.io-index", ""),
 ];
 
+const TMPL: &str = r#"
+[source.crates-io]
+registry = "https://github.com/rust-lang/crates.io-index"
+"#;
 pub fn pad_end(input: &str, total_length: usize, padding_char: char) -> String {
     let input_length = input.chars().count();
     if input_length >= total_length {
@@ -29,15 +35,26 @@ pub struct CargoConfig {
 }
 
 impl CargoConfig {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let path = CargoConfig::get_config()?;
-        let toml_str = fs::read_to_string(&path)?;
+    pub fn new() -> R<Self> {
+        let mut path = CargoConfig::get_config().unwrap_or("".to_string());
+        let mut toml_str = match path.len() {
+            0 => {
+                path = CargoConfig::gen_config_dir()?;
+                TMPL.to_string()
+            },
+            _ => fs::read_to_string(&path)?
+        };
+
+        if toml_str.len() == 0 { toml_str = TMPL.to_string() }
         let doc = toml_str.parse::<Document>()?;
+
         let source_option = doc.as_table().get("source");
         let mut registries: Vec<(String, String)> = Vec::new();
         if let Some(source) = source_option {
             source.as_table().unwrap().iter().for_each(|(key, val)| {
-                registries.push((key.to_string(), val["registry"].as_str().unwrap().to_string()))
+                if let Some(v) = val.get("registry") {
+                    registries.push((key.to_string(), v.to_string()))
+                }
             });
         }
         Ok(
@@ -55,6 +72,7 @@ impl CargoConfig {
             let crates_io = doc["source"]["crates-io"].as_table_mut().unwrap();
             crates_io.remove("replace-with");
             self.write_to_file().unwrap();
+            println!("Registry has been replaced with {}", registry);
             return
         }
         let in_local_config = self.registries.iter().any(|item| item.0 == registry);
@@ -86,7 +104,7 @@ impl CargoConfig {
         println!("there is no any registry named {} in recommendation list.", registry);
     }
 
-    pub fn write_to_file(&self) -> Result<(), Box<dyn Error>>{
+    pub fn write_to_file(&self) -> R<()>{
         let updated_toml = self.document.to_string();
         let mut file = File::create(&self.path)?;
         file.write_all(updated_toml.as_bytes())?;
@@ -98,9 +116,9 @@ impl CargoConfig {
         new_table["registry"] = value(url);
         self.document["source"][name] = Item::Table(new_table);
     }
-    pub fn get_config() -> Result<String, Box<dyn Error>> {
-        let mut result = String::from(""); 
-        let dir = dirs::home_dir().ok_or("找不到主目录")?;
+    
+    pub fn get_config() -> R<String> {
+        let dir = dirs::home_dir().ok_or("No home directory")?;
         let mut dir = dir.to_str().unwrap().to_string();
         dir.push_str("/.cargo/");
         let mut entries = fs::read_dir(&dir)?;
@@ -113,9 +131,16 @@ impl CargoConfig {
                 false
             }
         });
-        if exist { result.push_str(&dir) }
-        Ok(result)
+        if exist { Ok(dir) } else { Ok("".to_string())}
     }
+
+    pub fn gen_config_dir() -> R<String> {
+        let dir = dirs::home_dir().ok_or("No home directory")?;
+        let mut dir = dir.to_str().unwrap().to_string();
+        dir.push_str("/.cargo/config");
+        Ok(dir)
+    }
+
 }
 
 pub struct Cli {
@@ -148,7 +173,7 @@ impl Default for Cli {
 }
 
 impl Cli {
-    pub fn run_command(&mut self, args: Vec<String>) -> anyhow::Result<()> {
+    pub fn run_command(&mut self, args: Vec<String>) -> R<()> {
         match self.command.try_get_matches_from_mut(args)?.subcommand() {
             Some(("list", _)) => self.ls()?,
             Some(("use", sub_m)) => {
@@ -165,7 +190,7 @@ impl Cli {
         }
         Ok(())
     }
-    fn ls(&self) -> anyhow::Result<()> {
+    fn ls(&self) -> R<()> {
         let cargo_config = CargoConfig::new().unwrap();
         println!("Recommended registries：");
         for (tag, url, desc) in REGISTRIES {
@@ -182,9 +207,9 @@ impl Cli {
             .document
             .as_table()
             .get("source")
-            .ok_or_else(|| anyhow::anyhow!("no source config"))?
+            .ok_or("No source config")?
             .get("crates-io")
-            .ok_or_else(|| anyhow::anyhow!("no crates-io config"))?
+            .ok_or("No crates-io config")?
             .get("replace-with")
             .unwrap_or(&default_registry)
             .as_str()
@@ -230,3 +255,5 @@ impl Cli {
         println!("{name}, {url}")
     }
 }
+
+

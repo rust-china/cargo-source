@@ -1,8 +1,8 @@
 [package]
 name = "cargo-source"
-version = "0.0.31"
+version = "0.1.0-beta.1"
 edition = "2021"
-description = "Cargo sources manager"
+description = "Crates's registry manager"
 repository = "https://github.com/rust-china/cargo-source"
 authors = ["winter <zwtao90@gmail.com>"]
 keywords = ["subcommand", "cargo", "registry"]
@@ -10,9 +10,12 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.3.15", features = [ "derive" ] }
+clap = { version = "4.3.15" }
 ansi_term = "0.12"
 # toml = "0.7.6"
 toml_edit = "0.19.14"
 dirs = "3.0"
-anyhow = "1"
+# anyhow = "1"
+
+[badges]
+maintenance = { status = "actively-developed" }

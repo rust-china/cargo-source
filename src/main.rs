@@ -1,6 +1,6 @@
 use cargo_source::*;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> R<()> {
     let mut args: Vec<String> = std::env::args().collect();
     if args.len() >= 2 && args[1] == "source" {
         args.remove(1);
