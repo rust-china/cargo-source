@@ -1,5 +1,5 @@
 # cargo-source
-`cargo-source` can make it easy easy and fast to switch between different crates registries.
+`cargo-source` can make it easy and fast to switch between different crates registries.
 
 ## Install
 ```
@@ -8,7 +8,8 @@ $ cargo install cargo-source
 ## Example
 ```
 $ cargo source list
-推荐源：
+Recommended registries：
+  rsproxy    | https://rsproxy.cn/crates.io-index | 字节 
   ustc       | git://mirrors.ustc.edu.cn/crates.io-index | 中国科学技术大学 
   sjtu       | https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/ | 上海交通大学 
   tuna       | https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git | 清华大学 
@@ -22,9 +23,9 @@ Registry has been replaced with ustc
 ## Usage
 ```
 Commands:
-  list  列出当前可用源
-  use   使用指定源
-  add   添加源
+  list  List all the registries
+  use   Change registry to registry
+  add   Add one custom registry
   help  Print this message or the help of the given subcommand(s)
 
 Options:

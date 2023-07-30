@@ -150,19 +150,19 @@ pub struct Cli {
 impl Default for Cli {
     fn default() -> Self {
         let command = Command::new("cargo-source")
-            .version("0.0.31")
-            .about("crates 源切换工具")
+            .version(env!("CARGO_PKG_VERSION"))
+            .about("Crates's registry manager")
             .arg_required_else_help(true)
             .subcommand_required(true)
             .subcommands([
-                Command::new("list").about("列出当前可用源").alias("ls"),
+                Command::new("list").about("List all the registries").alias("ls"),
                 Command::new("use")
-                    .about("使用指定源")
-                    .arg(arg!(<source> "前选择源名称").required(true)),
+                    .about("Change registry to registry")
+                    .arg(arg!(<registry> "registry").required(true)),
                 Command::new("add")
-                    .about("添加源")
-                    .arg(arg!(<name> "源名称").required(true))
-                    .arg(arg!(<url> "源地址").required(true)),
+                    .about("Add one custom registry")
+                    .arg(arg!(<name> "Name of registry").required(true))
+                    .arg(arg!(<url> "Url of registry").required(true)),
             ]);
             // .after_help(
             //     "If you find 【cargo-source】 is useful, or you are a experienced Rust developer, or you have the interest in the project, then welcome to submit PRs and help maintain 【cargo-source】. \n \
