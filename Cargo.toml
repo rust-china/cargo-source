@@ -2,7 +2,7 @@
 name = "cargo-source"
 version = "0.1.1"
 edition = "2021"
-description = "Crates's registry manager"
+description = "Crate registry manager, fast switch between different registries.1"
 repository = "https://github.com/rust-china/cargo-source"
 authors = ["winter <zwtao90@gmail.com>"]
 keywords = ["subcommand", "cargo", "registry"]
@@ -12,10 +12,9 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 clap = { version = "4.3.15" }
 ansi_term = "0.12"
-# toml = "0.7.6"
 toml_edit = "0.19.14"
 dirs = "3.0"
-# anyhow = "1"
+reqwest = { version = "0.11", features = ["blocking"] }
 
 [badges]
 maintenance = { status = "actively-developed" }

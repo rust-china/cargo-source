@@ -1,7 +1,10 @@
 use std::{fs::{self, File}, io::Write, error::Error};
 use toml_edit::{Document, Item, Table, value};
-use ansi_term::Colour::Green;
+use ansi_term::Colour::{Green, Red};
 use clap::{arg, Command};
+use std::time::Instant;
+use reqwest;
+use std::thread;
 
 pub type R<T> = Result<T, Box<dyn Error>>;
 
@@ -47,13 +50,12 @@ impl CargoConfig {
 
         if toml_str.len() == 0 { toml_str = TMPL.to_string() }
         let doc = toml_str.parse::<Document>()?;
-
-        let source_option = doc.as_table().get("source");
         let mut registries: Vec<(String, String)> = Vec::new();
-        if let Some(source) = source_option {
+        if let Some(source) = doc.as_table().get("source") {
             source.as_table().unwrap().iter().for_each(|(key, val)| {
                 if let Some(v) = val.get("registry") {
-                    registries.push((key.to_string(), v.to_string()))
+                    let v = v.as_value().unwrap().as_str().unwrap().to_string();
+                    registries.push((key.to_string(),  v));
                 }
             });
         }
@@ -163,6 +165,7 @@ impl Default for Cli {
                     .about("Add one custom registry")
                     .arg(arg!(<name> "Name of registry").required(true))
                     .arg(arg!(<url> "Url of registry").required(true)),
+                Command::new("test").about("Test the spead of all the registries").alias("t"),
             ]);
             // .after_help(
             //     "If you find 【cargo-source】 is useful, or you are a experienced Rust developer, or you have the interest in the project, then welcome to submit PRs and help maintain 【cargo-source】. \n \
@@ -186,6 +189,7 @@ impl Cli {
                 let registry_url = sub_m.get_one::<String>("url").unwrap();
                 self.insert_registry(registry_name, registry_url);
             }
+            Some(("test", _)) => self.test(),
             _ => (),
         }
         Ok(())
@@ -217,18 +221,21 @@ impl Cli {
         if cargo_config.registries.len() > 0 {
             println!("\n-------------------------------------------\nLocal config registries：");
         }
-        cargo_config.registries.iter().for_each(|(name, registry)| {
-            let tag = if name == replace_with {
-                format!("* {}", name)
-            } else {
-                format!("  {}", name)
-            };
-            println!(
-                "{} | {}",
-                pad_end(&tag, 12, ' '),
-                registry.trim_matches('\"')
-            )
-        });
+        cargo_config.registries.iter()
+            .for_each(|(name, registry)| {
+                let tag = if name == replace_with {
+                    format!("* {}", name)
+                } else {
+                    format!("  {}", name)
+                };
+               
+                println!(
+                    "{}\t| {}",
+                    pad_end(&tag, 12, ' '),
+                    registry.trim_matches('"')
+                )
+            }
+        );
         println!("\n 说明：*表示当前使用的源，可以通过cargo source use xxxx 来切换源");
         Ok(())
     }
@@ -253,6 +260,31 @@ impl Cli {
             Err(err) => println!("{}", err),
         }
         println!("{name}, {url}")
+    }
+
+    fn test(&self){
+        REGISTRIES.into_iter().map(|item| {
+            thread::spawn(move || -> String {
+                let start_time = Instant::now();
+                let url = if item.1.starts_with("git") {
+                    let addr = item.1.split("://").collect::<Vec<&str>>()[1];
+                    format!("http://{}", addr)
+                } else {
+                    item.1.to_string()
+                };
+                let response = reqwest::blocking::get(url);
+                let duration = start_time.elapsed();
+                // Ok(format!("{}\t| {} | {:?}", item.0, item.1, duration))
+                match response {
+                    Ok(_) => format!("{}\t| {} | {:?}", item.0, item.1, duration),
+                    Err(_) => format!("{}\t| {} | {:?}", item.0, item.1, Red.paint("Failed"))
+                }
+            })
+        })
+        .for_each(|handle| { 
+            let result = handle.join().unwrap();
+            println!("{}", result)
+        })
     }
 }
 
