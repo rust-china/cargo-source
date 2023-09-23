@@ -180,7 +180,7 @@ impl Cli {
         match self.command.try_get_matches_from_mut(args)?.subcommand() {
             Some(("list", _)) => self.ls()?,
             Some(("use", sub_m)) => {
-                if let Some(c) = sub_m.get_one::<String>("source") {
+                if let Some(c) = sub_m.get_one::<String>("registry") {
                     self.switch(c);
                 }
             }
@@ -262,7 +262,7 @@ impl Cli {
         println!("{name}, {url}")
     }
 
-    fn test(&self){
+    fn test(&self) {
         REGISTRIES.into_iter().map(|item| {
             thread::spawn(move || -> String {
                 let start_time = Instant::now();
