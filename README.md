@@ -1,3 +1,6 @@
+![Crates.io](https://img.shields.io/crates/v/cargo-source)
+![Crates.io](https://img.shields.io/crates/d/cargo-source)
+
 # cargo-source
 `cargo-source` can make it easy and fast to switch between different crates registries.
 
@@ -32,3 +35,8 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
+
+## 贡献代码
+### 本地运行
+  cargo run [subcomd]
+  例如：cargo run ls
